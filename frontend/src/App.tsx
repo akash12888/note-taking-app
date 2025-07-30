@@ -14,7 +14,7 @@ type ViewType = 'signup' | 'signin' | 'dashboard';
 
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.REACT_APP_API_URL : 'http://localhost:5000';
+  ? import.meta.env.VITE_API_URL : 'http://localhost:5000';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewType>('signup');
