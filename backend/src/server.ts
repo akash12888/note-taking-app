@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import passport from 'passport';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -38,6 +39,10 @@ app.use(session({
   secret: process.env.SESSION_SECRET!,
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI!,
+    touchAfter: 24 * 3600 
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true, 
@@ -60,6 +65,11 @@ app.use(limiter);
 
 app.use(logger);
 
+// Root route redirect
+app.get('/', (req, res) => {
+  res.redirect('/api/health');
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
 
@@ -81,7 +91,6 @@ const server = app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV}`);
   console.log(`CORS enabled for: ${process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'http://localhost:5173'}`);
 });
-
 
 process.on('SIGTERM', () => {
   server.close(() => {
