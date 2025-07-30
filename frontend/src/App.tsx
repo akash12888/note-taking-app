@@ -13,7 +13,7 @@ import desktopSideImage from './assets/images/right-column.png';
 type ViewType = 'signup' | 'signin' | 'dashboard';
 
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
+const API_BASE_URL = import.meta.env.MODE === 'production' 
   ? import.meta.env.VITE_API_URL : 'http://localhost:5000';
 
 const App: React.FC = () => {
