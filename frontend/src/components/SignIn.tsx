@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { toast } from 'react-toastify';
 import { authAPI } from '../services/api';
 import type { User } from '../types';
 import type{ ApiError } from '../types';
+
 interface SignInProps {
   onSuccess: (user: User, token: string, rememberMe?: boolean) => void;
   onSwitchToSignUp: () => void;
 }
 
-const SignIn: React.FC<SignInProps> = ({ onSuccess, onSwitchToSignUp }) => {
+function SignIn({ onSuccess, onSwitchToSignUp }: SignInProps) {
   const [formData, setFormData] = useState({
     email: '',
     otp: '',
@@ -217,6 +218,6 @@ const SignIn: React.FC<SignInProps> = ({ onSuccess, onSwitchToSignUp }) => {
       </div>
     </div>
   );
-};
+}
 
 export default SignIn;
