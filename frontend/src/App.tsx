@@ -6,7 +6,7 @@ import SignIn from './components/SignIn';
 import Dashboard from './components/Dashboard';
 import type { User } from './types';
 
-// Import your images from assets
+
 import hdLogo from './assets/images/top.svg';
 import desktopSideImage from './assets/images/right-column.png';
 
@@ -23,7 +23,7 @@ const App: React.FC = () => {
   const [authProcessing, setAuthProcessing] = useState(false);
 
   useEffect(() => {
-    console.log('🔍 App useEffect - checking authentication...');
+    console.log(' App useEffect - checking authentication...');
     console.log('Current URL:', window.location.href);
     console.log('Search params:', window.location.search);
     
@@ -73,7 +73,7 @@ const App: React.FC = () => {
     try {
       console.log('🔍 Fetching user data from cookie-based auth...');
       
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -118,7 +118,7 @@ const App: React.FC = () => {
       if (!userData) {
         console.log('Fetching user data with token...');
         
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
@@ -160,7 +160,7 @@ const App: React.FC = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     
-    fetch(`${API_BASE_URL}/api/auth/logout`, {
+    fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include'
     }).catch(console.error);
