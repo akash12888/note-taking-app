@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { Calendar } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -7,12 +7,13 @@ import { toast } from 'react-toastify';
 import { authAPI } from '../services/api';
 import type { User } from '../types';
 import type{ ApiError } from '../types';
+
 interface SignUpProps {
   onSuccess: (user: User, token: string) => void;
   onSwitchToSignIn: () => void;
 }
 
-const SignUp: React.FC<SignUpProps> = ({ onSuccess, onSwitchToSignIn }) => {
+function SignUp({ onSuccess, onSwitchToSignIn }: SignUpProps) {
   const [formData, setFormData] = useState({
     name: '',
     dateOfBirth: '',
@@ -305,6 +306,6 @@ const SignUp: React.FC<SignUpProps> = ({ onSuccess, onSwitchToSignIn }) => {
       </div>
     </>
   );
-};
+}
 
 export default SignUp;
