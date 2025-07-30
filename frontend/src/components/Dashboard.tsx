@@ -5,13 +5,13 @@ import { notesAPI } from '../services/api';
 import type { User as UserType, Note } from '../types';
 import topImage from '../assets/images/top.png';
 import type {ApiError} from '../types';  
+
 interface DashboardProps {
   user: UserType;
   onLogout: () => void;
 }
 
-
-const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+function Dashboard({ user, onLogout }: DashboardProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [newNote, setNewNote] = useState({ title: '', content: '' });
@@ -283,6 +283,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       </div>
     </div>
   );
-};
+}
 
 export default Dashboard;
