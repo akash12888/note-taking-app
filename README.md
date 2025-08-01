@@ -1,6 +1,6 @@
 # 📝 Note-Taking Application
-🚀 Live Demo: https://note-taking-app-1-5psf.onrender.com/
 A full-stack, secure, and responsive note-taking app with Email/OTP and Google OAuth login, note management, and JWT-based authentication. Built with React (TypeScript) on the frontend and Node.js + Express (TypeScript) on the backend, using MongoDB as the database.
+🚀 Live Demo: https://note-taking-app-1-5psf.onrender.com/
 
 ## 🚀 Features
 
