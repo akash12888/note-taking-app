@@ -10,9 +10,6 @@ import desktopSideImage from './assets/images/right-column.png';
 import { extractErrorMessage } from './utils/errorHandler';
 import type { ApiError } from './types';
 
-const API_BASE_URL = import.meta.env.MODE === 'production' 
-  ? import.meta.env.VITE_API_URL : 'http://localhost:5000/api';
-
 type ViewType = 'signup' | 'signin' | 'dashboard';
 
 // A component that displays a simple loading screen
