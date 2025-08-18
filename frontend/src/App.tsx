@@ -1,180 +1,107 @@
-import React, { useState, useEffect } from 'react';
-import { ToastContainer } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import SignUp from './components/SignUp';
 import SignIn from './components/SignIn';
 import Dashboard from './components/Dashboard';
+import { authAPI } from './services/api';
 import type { User } from './types';
-
-// Import your images from assets
-import hdLogo from './assets/images/top.svg';
 import desktopSideImage from './assets/images/right-column.png';
+import { extractErrorMessage } from './utils/errorHandler';
+import type { ApiError } from './types';
+
 
 type ViewType = 'signup' | 'signin' | 'dashboard';
 
+// A component that displays a simple loading screen
+const LoadingScreen = ({ message }: { message: string }) => (
+  <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="text-center">
+      {/* Simple spinner */}
+      <div className="w-6 h-6 border-2 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+      <p className="text-gray-700 text-sm font-medium">{message}</p>
+    </div>
+  </div>
+);
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? process.env.REACT_APP_API_URL : 'http://localhost:5000';
-
-const App: React.FC = () => {
+function App() {
   const [currentView, setCurrentView] = useState<ViewType>('signup');
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authProcessing, setAuthProcessing] = useState(false);
 
-  useEffect(() => {
-    console.log('🔍 App useEffect - checking authentication...');
-    console.log('Current URL:', window.location.href);
-    console.log('Search params:', window.location.search);
-    
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    console.log('Stored token exists:', !!storedToken);
-    console.log('Stored user exists:', !!storedUser);
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const authSuccess = urlParams.get('auth');
-    const error = urlParams.get('error');
-    
-    console.log('Auth success param:', authSuccess);
-    console.log('All URL params:', Array.from(urlParams.entries()));
-    
-    if (authSuccess === 'success') {
-      console.log(' Google OAuth success detected, fetching user data...');
-      setAuthProcessing(true);
-      handleGoogleAuthSuccess();
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return;
-    }
-    
-    if (storedToken && storedUser) {
-      console.log(' Found stored auth, redirecting to dashboard');
-      setUser(JSON.parse(storedUser));
-      setCurrentView('dashboard');
-      setIsLoading(false);
-      return;
-    }
-    
-    console.log('Error from URL:', error);
-    
-    if (error) {
-      console.error(' OAuth error:', error);
-      setAuthProcessing(false);
-      setIsLoading(false);
-      return;
-    }
-    
-    console.log(' No auth detected, showing normal UI');
-    setIsLoading(false);
-  }, []);
+  // Check if this is an OAuth redirect immediately
+  const urlParams = new URLSearchParams(window.location.search);
+  const authSuccess = urlParams.get('auth');
 
   const handleGoogleAuthSuccess = async () => {
     try {
-      console.log('🔍 Fetching user data from cookie-based auth...');
+      const response = await authAPI.getCurrentUser();
       
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('API response status:', response.status);
-      console.log('API response headers:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log(' User data fetched:', result.user?.email);
-        console.log('Full user data:', result);
-        
-        setUser(result.user);
-        localStorage.setItem('user', JSON.stringify(result.user));
-        console.log(' Authentication successful, setting dashboard view');
+      if (response.user) {
+        setUser(response.user);
         setCurrentView('dashboard');
+        toast.success(`Welcome back, ${response.user.name}!`);
       } else {
-        const errorText = await response.text();
-        console.error(' Failed to fetch user data:', response.status, errorText);
+        throw new Error('User data not found in response');
       }
-      
-      setAuthProcessing(false);
-      setIsLoading(false);
-      
     } catch (error) {
-      console.error(' Error handling Google auth success:', error);
-      setAuthProcessing(false);
+      console.error('Error handling Google auth success:', error);
+      const errorMessage = extractErrorMessage(error as ApiError);
+      toast.error(errorMessage);
+      authAPI.clearAuthData();
+      setCurrentView('signin');
+    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAuthSuccess = async (userData: User | null, authToken: string) => {
-    try {
-      console.log('🔍 handleAuthSuccess called with token (OTP auth)');
-      setAuthProcessing(true);
-      
-      localStorage.setItem('token', authToken);
-      
-      if (!userData) {
-        console.log('Fetching user data with token...');
-        
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-        
-        console.log('API response status:', response.status);
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('User data fetched:', result.user?.email);
-          userData = result.user;
-        } else {
-          console.error('Failed to fetch user data:', response.status);
-          setAuthProcessing(false);
-          setIsLoading(false);
+  const handleAuthSuccess = (userData: User) => {
+    setUser(userData);
+    setCurrentView('dashboard');
+    toast.success(`Welcome, ${userData.name}!`);
+  };
+
+  useEffect(() => {
+    const handleInitialAuthCheck = async () => {
+      try {
+        if (authSuccess === 'success') {
+          // Clear URL immediately to prevent loops
+          window.history.replaceState({}, document.title, window.location.pathname);
+          await handleGoogleAuthSuccess();
           return;
         }
+
+        // Check stored authentication
+        const storedUser = authAPI.getStoredUser();
+        if (storedUser) {
+          setUser(storedUser);
+          setCurrentView('dashboard');
+        } else {
+          setCurrentView('signin');
+        }
+      } catch (error) {
+        console.error("Initial auth check failed:", error);
+        authAPI.clearAuthData();
+        setCurrentView('signin');
+      } finally {
+        setIsLoading(false);
       }
-      
-      if (userData) {
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        console.log(' Authentication successful, setting dashboard view');
-        setCurrentView('dashboard');
-      }
-      
-      setAuthProcessing(false);
-      setIsLoading(false);
-      
-    } catch (error) {
-      console.error('Error handling auth success:', error);
-      setAuthProcessing(false);
-      setIsLoading(false);
-    }
-  };
+    };
+    
+    handleInitialAuthCheck();
+  }, [authSuccess]);
 
   const handleLogout = () => {
+    authAPI.logout();
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    }).catch(console.error);
-    
     setCurrentView('signin');
+    toast.success('Signed out successfully');
   };
 
-  // Simple Loading Screen
-  if (isLoading || authProcessing) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
-      </div>
-    );
+  // Show loading immediately for OAuth redirects or initial loading
+  if (isLoading || authSuccess === 'success') {
+    const message = authSuccess === 'success' ? 'Completing sign in...' : 'Loading...';
+    return <LoadingScreen message={message} />;
   }
 
   if (currentView === 'dashboard' && user) {
@@ -183,7 +110,7 @@ const App: React.FC = () => {
         <Dashboard user={user} onLogout={handleLogout} />
         <ToastContainer
           position="top-right"
-          autoClose={5000}
+          autoClose={4000}
           hideProgressBar={false}
           newestOnTop={false}
           closeOnClick
@@ -193,6 +120,7 @@ const App: React.FC = () => {
           pauseOnHover
           theme="light"
           className="!text-sm"
+          toastClassName="font-medium"
         />
       </>
     );
@@ -200,39 +128,29 @@ const App: React.FC = () => {
 
   return (
     <>
-      <div className="h-screen bg-white flex overflow-hidden">
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 overflow-y-auto">
+      <div className="h-screen bg-white flex">
+        {/* Left Side - Auth Form */}
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-8">
           <div className="w-full max-w-md">
-            <div className="flex items-center justify-center mb-8">
-              <img 
-                src={hdLogo} 
-                alt="HD Logo" 
-                className="h-12 object-contain"
-              />
-            </div>
-
             {currentView === 'signup' ? (
               <SignUp
-                onSuccess={handleAuthSuccess}
+                onSuccess={(user) => handleAuthSuccess(user)}
                 onSwitchToSignIn={() => setCurrentView('signin')}
               />
             ) : (
               <SignIn
-                onSuccess={handleAuthSuccess}
+                onSuccess={(user) => handleAuthSuccess(user)}
                 onSwitchToSignUp={() => setCurrentView('signup')}
               />
             )}
           </div>
         </div>
 
-        <div className="hidden lg:block lg:w-1/2 relative p-0 m-0">
+          <div className="hidden lg:block lg:w-1/2 relative p-1">
           <div 
-            className="w-full h-full rounded-2xl overflow-hidden"
+            className="w-full h-full rounded-xl bg-center"
             style={{
               backgroundImage: `url(${desktopSideImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
             }}
           />
         </div>
@@ -250,9 +168,10 @@ const App: React.FC = () => {
         pauseOnHover
         theme="light"
         className="!text-sm"
+        toastClassName="font-medium"
       />
     </>
   );
-};
+}
 
 export default App;
